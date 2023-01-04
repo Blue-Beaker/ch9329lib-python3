@@ -9,6 +9,214 @@ import math
 import binascii
 import threading
 from socket import *
+#Constants
+__DICT_KEY_NORMAL=dict({
+    "esc":0x29,#Esc
+    "f1":0x3a,#F1
+    "f2":0x3b,#F2
+    "f3":0x3c,#F3
+    "f4":0x3d,#F4
+    "f5":0x3e,#F5
+    "f6":0x3f,#F6
+    "f7":0x40,#F7
+    "f8":0x41,#F8
+    "f9":0x42,#F9
+    "f10":0x43,#F10
+    "f11":0x44,#F11
+    "f12":0x45,#F12
+    "printscreen":0x46,#Print
+    "scrolllock":0x47,#ScrollLock
+    "pausebreak":0x48,#PauseBreak
+    "`":0x35,#`
+    "1":0x1e,#1
+    "2":0x1f,#2
+    "3":0x20,#3
+    "4":0x21,#4
+    "5":0x22,#5
+    "6":0x23,#6
+    "7":0x24,#7
+    "8":0x25,#8
+    "9":0x26,#9
+    "0":0x27,#0
+    "-":0x2d,#-
+    "=":0x2e,#=
+    "~":0x35,#~
+    "!":0x1e,#!
+    "@":0x1f,#@
+    "#":0x20,##
+    "$":0x21,#$
+    "%":0x22,#%
+    "^":0x23,#^
+    "&":0x24,#&
+    "*":0x25,#*
+    "(":0x26,#(
+    ")":0x27,#)
+    "_":0x2d,#_
+    "+":0x2e,#+
+    "backspace":0x2a,#Backspace
+    "tab":0x2b,#Tab
+    "q":0x14,#q
+    "w":0x1a,#w
+    "e":0x08,#e
+    "r":0x15,#r
+    "t":0x17,#t
+    "y":0x1c,#y
+    "u":0x18,#u
+    "i":0x0c,#i
+    "o":0x12,#o
+    "p":0x13,#p
+    "[":0x2f,#[
+    "]":0x30,#]
+    "\\":0x31,#\
+    "Q":0x14,#Q
+    "W":0x1a,#W
+    "E":0x08,#E
+    "R":0x15,#R
+    "T":0x17,#T
+    "Y":0x1c,#Y
+    "U":0x18,#U
+    "I":0x0c,#I
+    "O":0x12,#O
+    "P":0x13,#P
+    "{":0x2f,#{
+    "}":0x30,#}
+    "|":0x31,#|
+    "caps":0x39,#Caps
+    "a":0x04,#a
+    "s":0x16,#s
+    "d":0x07,#d
+    "f":0x09,#f
+    "g":0x0a,#g
+    "h":0x0b,#h
+    "j":0x0d,#j
+    "k":0x0e,#k
+    "l":0x0f,#l
+    ";":0x33,#;
+    "'":0x34,#'
+    "A":0x04,#A
+    "S":0x16,#S
+    "D":0x07,#D
+    "F":0x09,#F
+    "G":0x0a,#G
+    "H":0x0b,#H
+    "J":0x0d,#J
+    "K":0x0e,#K
+    "L":0x0f,#L
+    ":":0x33,#:
+    "\"":0x34,#"
+    "enter":0x28,#Enter
+    "z":0x1d,#z
+    "x":0x1b,#x
+    "c":0x06,#c
+    "v":0x19,#v
+    "b":0x05,#b
+    "n":0x11,#n
+    "m":0x10,#m
+    ",":0x36,#,
+    ".":0x37,#.
+    "/":0x38,#/
+    "Z":0x1d,#Z
+    "X":0x1b,#X
+    "C":0x06,#C
+    "V":0x19,#V
+    "B":0x05,#B
+    "N":0x11,#N
+    "M":0x10,#M
+    "<":0x36,#<
+    ">":0x37,#>
+    "?":0x38,#?
+    "space":0x2c,#Space
+    "app":0x65,#App
+    "menu":0x65,#Menu
+    "insert":0x49,#Insert
+    "delete":0x4c,#Delete
+    "home":0x4a,#Home
+    "end":0x4d,#End
+    "pageup":0x4b,#PageUp
+    "pagedown":0x4e,#PageDown
+    "left":0x50,#Left
+    "up":0x52,#Up
+    "right":0x4f,#Right
+    "down":0x51,#Down
+
+    })
+__DICT_KEY_CONTROL=dict({
+    "lctrl":7,#LCTRL
+    "lshift":6,#LSHIFT
+    "lalt":5,#LALT
+    "lmeta":5,#LMETA
+    "lsuper":4,#LSUPER
+    "lwin":4,#LWIN
+    "rctrl":3,#RCTRL
+    "rshift":2,#RSHIFT
+    "ralt":1,#RALT
+    "rmeta":1,#RMETA
+    "rsuper":0,#RSUPER
+    "rwin":0,#RWIN
+    })
+__DICT_KEY_MEDIA=dict({
+    "volup":[0,7],
+    "voldown":[0,6],
+    "mute":[0,5],
+    "playpause":[0,4],
+    "nexttrack":[0,3],
+    "prevtrack":[0,2],
+    "cdstop":[0,1],
+    "eject":[0,0],
+    "email":[1,7],
+    "search":[1,6],
+    "wwwfavorite":[1,5],
+    "wwwhome":[1,4],
+    "wwwback":[1,3],
+    "wwwforward":[1,2],
+    "wwwstop":[1,1],
+    "refresh":[1,0],
+    "media":[2,7],
+    "explorer":[2,6],
+    "calculator":[2,5],
+    "screensave":[2,4],
+    "mycomputer":[2,3],
+    "minimize":[2,2],
+    "record":[2,1],
+    "rewind":[2,0],
+})
+__NAMES_KEY_CONTROL=[
+    "rsuper",#RSUPER/RWIN
+    "ralt",#RALT
+    "rshift",#RSHIFT
+    "rctrl",#RCTRL
+    "lsuper",#LSUPER/LWIN
+    "lalt",#LALT
+    "lshift",#LSHIFT
+    "lctrl",#LCTRL
+    ]
+__NAMES_KEY_MEDIA=[
+    ["eject",
+    "cdstop",
+    "prevtrack",
+    "nexttrack",
+    "playpause",
+    "mute",
+    "voldown",
+    "volup",],
+    ["refresh",
+    "wwwstop",
+    "wwwforward",
+    "wwwback",
+    "wwwhome",
+    "wwwfavorite",
+    "search",
+    "email",],
+    ["rewind",
+    "record",
+    "minimize",
+    "mycomputer",
+    "screensave",
+    "calculator",
+    "explorer",
+    "media",]
+]
+
 class CH9329HID:
     #Parameters
     overTCP=False
@@ -22,177 +230,6 @@ class CH9329HID:
     __pressedKeysNormal=bytearray()
     __pressedKeysMedia=[[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
     __mousePressByte=0
-    #Constants
-    __DICT_KEY_NORMAL=dict({
-        "esc":0x29,#Esc
-        "f1":0x3a,#F1
-        "f2":0x3b,#F2
-        "f3":0x3c,#F3
-        "f4":0x3d,#F4
-        "f5":0x3e,#F5
-        "f6":0x3f,#F6
-        "f7":0x40,#F7
-        "f8":0x41,#F8
-        "f9":0x42,#F9
-        "f10":0x43,#F10
-        "f11":0x44,#F11
-        "f12":0x45,#F12
-        "printscreen":0x46,#Print
-        "scrolllock":0x47,#ScrollLock
-        "pausebreak":0x48,#PauseBreak
-        "`":0x35,#`
-        "1":0x1e,#1
-        "2":0x1f,#2
-        "3":0x20,#3
-        "4":0x21,#4
-        "5":0x22,#5
-        "6":0x23,#6
-        "7":0x24,#7
-        "8":0x25,#8
-        "9":0x26,#9
-        "0":0x27,#0
-        "-":0x2d,#-
-        "=":0x2e,#=
-        "~":0x35,#~
-        "!":0x1e,#!
-        "@":0x1f,#@
-        "#":0x20,##
-        "$":0x21,#$
-        "%":0x22,#%
-        "^":0x23,#^
-        "&":0x24,#&
-        "*":0x25,#*
-        "(":0x26,#(
-        ")":0x27,#)
-        "_":0x2d,#_
-        "+":0x2e,#+
-        "backspace":0x2a,#Backspace
-        "tab":0x2b,#Tab
-        "q":0x14,#q
-        "w":0x1a,#w
-        "e":0x08,#e
-        "r":0x15,#r
-        "t":0x17,#t
-        "y":0x1c,#y
-        "u":0x18,#u
-        "i":0x0c,#i
-        "o":0x12,#o
-        "p":0x13,#p
-        "[":0x2f,#[
-        "]":0x30,#]
-        "\\":0x31,#\
-        "Q":0x14,#Q
-        "W":0x1a,#W
-        "E":0x08,#E
-        "R":0x15,#R
-        "T":0x17,#T
-        "Y":0x1c,#Y
-        "U":0x18,#U
-        "I":0x0c,#I
-        "O":0x12,#O
-        "P":0x13,#P
-        "{":0x2f,#{
-        "}":0x30,#}
-        "|":0x31,#|
-        "caps":0x39,#Caps
-        "a":0x04,#a
-        "s":0x16,#s
-        "d":0x07,#d
-        "f":0x09,#f
-        "g":0x0a,#g
-        "h":0x0b,#h
-        "j":0x0d,#j
-        "k":0x0e,#k
-        "l":0x0f,#l
-        ";":0x33,#;
-        "'":0x34,#'
-        "A":0x04,#A
-        "S":0x16,#S
-        "D":0x07,#D
-        "F":0x09,#F
-        "G":0x0a,#G
-        "H":0x0b,#H
-        "J":0x0d,#J
-        "K":0x0e,#K
-        "L":0x0f,#L
-        ":":0x33,#:
-        "\"":0x34,#"
-        "enter":0x28,#Enter
-        "z":0x1d,#z
-        "x":0x1b,#x
-        "c":0x06,#c
-        "v":0x19,#v
-        "b":0x05,#b
-        "n":0x11,#n
-        "m":0x10,#m
-        ",":0x36,#,
-        ".":0x37,#.
-        "/":0x38,#/
-        "Z":0x1d,#Z
-        "X":0x1b,#X
-        "C":0x06,#C
-        "V":0x19,#V
-        "B":0x05,#B
-        "N":0x11,#N
-        "M":0x10,#M
-        "<":0x36,#<
-        ">":0x37,#>
-        "?":0x38,#?
-        "space":0x2c,#Space
-        "app":0x65,#App
-        "menu":0x65,#Menu
-        "insert":0x49,#Insert
-        "delete":0x4c,#Delete
-        "home":0x4a,#Home
-        "end":0x4d,#End
-        "pageup":0x4b,#PageUp
-        "pagedown":0x4e,#PageDown
-        "left":0x50,#Left
-        "up":0x52,#Up
-        "right":0x4f,#Right
-        "down":0x51,#Down
-
-        })
-    __DICT_KEY_CONTROL=dict({
-        "lctrl":7,#LCTRL
-        "lshift":6,#LSHIFT
-        "lalt":5,#LALT
-        "lmeta":5,#LMETA
-        "lsuper":4,#LSUPER
-        "lwin":4,#LWIN
-        "rctrl":3,#RCTRL
-        "rshift":2,#RSHIFT
-        "ralt":1,#RALT
-        "rmeta":1,#RMETA
-        "rsuper":0,#RSUPER
-        "rwin":0,#RWIN
-        })
-    __DICT_KEY_MEDIA=dict({
-        "volup":[0,7],
-        "voldown":[0,6],
-        "mute":[0,5],
-        "playpause":[0,4],
-        "nexttrack":[0,3],
-        "prevtrack":[0,2],
-        "cdstop":[0,1],
-        "eject":[0,0],
-        "email":[1,7],
-        "search":[1,6],
-        "wwwfavorite":[1,5],
-        "wwwhome":[1,4],
-        "wwwback":[1,3],
-        "wwwforward":[1,2],
-        "wwwstop":[1,1],
-        "refresh":[1,0],
-        "media":[2,7],
-        "explorer":[2,6],
-        "calculator":[2,5],
-        "screensave":[2,4],
-        "mycomputer":[2,3],
-        "minimize":[2,2],
-        "record":[2,1],
-        "rewind":[2,0],
-    })
     def __init__(self,overTCP=False,path="/dev/ttyUSB0",address=0x00,baud=9600,debug=False):
         self.overTCP=overTCP
         self.path=path
@@ -355,12 +392,12 @@ class CH9329HID:
         self.write9329(0x01,bytearray())
         return True
     def pressByName(self,name,press=0):
-        if name in self.__DICT_KEY_NORMAL:
-            return self.pressNormal(self.__DICT_KEY_NORMAL[name],press)
-        elif name in self.__DICT_KEY_CONTROL:
-            return self.pressControl(self.__DICT_KEY_CONTROL[name],press)
-        elif name in self.__DICT_KEY_MEDIA:
-            return self.pressMedia(self.__DICT_KEY_MEDIA[name][0],self.__DICT_KEY_MEDIA[name][1],press)
+        if name in __DICT_KEY_NORMAL:
+            return self.pressNormal(__DICT_KEY_NORMAL[name],press)
+        elif name in __DICT_KEY_CONTROL:
+            return self.pressControl(__DICT_KEY_CONTROL[name],press)
+        elif name in __DICT_KEY_MEDIA:
+            return self.pressMedia(__DICT_KEY_MEDIA[name][0],__DICT_KEY_MEDIA[name][1],press)
         else:
             return False
     def clickByName(self,name):
@@ -416,3 +453,33 @@ class CH9329HID:
         self.__mousePressByte=0
         if immediate:
             self.mouseRel(0,0,0)
+    #Status
+    def getPressedKeysRaw(self):
+        return self.__pressedKeysNormal,self.__pressedKeysCont,self.__pressedKeysMedia
+    def getPressedKeyNormal(self):
+        pressed=[]
+        for key in self.__pressedKeysNormal:
+            if key in __DICT_KEY_NORMAL.values():
+                pressed.append(list(__DICT_KEY_NORMAL.keys())[list(__DICT_KEY_NORMAL.values()).index(key)])
+            else:
+                pressed.append(hex(key))
+        return pressed
+    def getPressedKeyCont(self):
+        pressed=[]
+        for i in range(self.__pressedKeysCont):
+            if self.__pressedKeysCont[i]:
+                pressed.append(__NAMES_KEY_CONTROL[i])
+        return pressed
+    def getPressedKeyMedia(self):
+        pressed=[]
+        for i in range(self.__pressedKeysMedia):
+            for j in range(self.__pressedKeysMedia[i]):
+                if self.__pressedKeysMedia[i][j]:
+                    pressed.append(__NAMES_KEY_MEDIA[i][j])
+        return pressed
+    def getPressedKeyAll(self):
+        return self.getPressedKeyNormal(),self.getPressedKeyCont(),self.getPressedKeyMedia()
+    def getPressedMouse(self):
+        return bin(self.__mousePressByte)
+    def getInfo(self):
+        return self.write9329(0x01,bytearray())
