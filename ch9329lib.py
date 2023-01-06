@@ -412,8 +412,13 @@ class CH9329HID:
         self.pressByName(name,1)
         self.pressByName(name,0)
     def releaseAll(self):
+        self.__pressedKeysCont=[0,0,0,0,0,0,0,0]
+        self.__pressedKeysNormal=bytearray()
+        self.__pressedKeysMedia=[[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
+        self.__mousePressByte=0
         self.write9329(cmd=0x02,data=bytearray([0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]))
         self.write9329(cmd=0x03,data=bytearray([0x00,0x00]))
+        self.mouseRel(0,0,0)
     #Mouse
     def setMousePress(self,button=0,press=1): #Button: left=0,right=1,middle=2,back=3,forward=4,more side buttons=5-7; Press: release=0,press=1,toggle=-1
         if press==0:
