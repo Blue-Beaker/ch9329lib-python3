@@ -272,38 +272,43 @@ class CH9329HID:
         self.keepAliveThread.start()
     #Port Actions
     def read9329(self):
-        packet=bytearray()
-        head=self.__hexRead(5)
-        data=self.__hexRead(head[4])
-        sumx=self.__hexRead(1)[0]
-        for byte in head:
-            packet.append(byte)
-        for byte in data:
-            packet.append(byte)
-        cmd=packet[3]
-        sumy=int()
-        for byte in packet:
-            sumy+=byte
-        sumy=sumy%256
-        if sumx==sumy:
-            sumpass=True
-        else:
-            sumpass=False
-        packet.append(sumx)
-        if self.debug:
-            outlist=[]
+        try:
+            packet=bytearray()
+            head=self.__hexRead(5)
+            data=self.__hexRead(head[4])
+            sumx=self.__hexRead(1)[0]
+            for byte in head:
+                packet.append(byte)
+            for byte in data:
+                packet.append(byte)
+            cmd=packet[3]
+            sumy=int()
             for byte in packet:
-                outlist.append(format(byte, '02x'))
-            print(f"->{outlist},pass:{sumpass}")
-        if sumpass:
-            if self.debug and cmd==0x81:
-                ver=data[0]
-                usb=data[1]
-                lock="{:0>8b}".format(data[2])
-                info=f"Ver:{hex(ver)},USB:{usb},Num{lock[-1]} Caps{lock[-2]} Scroll{lock[-3]}"
-                print(info)
-            return packet
-        else:
+                sumy+=byte
+            sumy=sumy%256
+            if sumx==sumy:
+                sumpass=True
+            else:
+                sumpass=False
+            packet.append(sumx)
+            if self.debug:
+                outlist=[]
+                for byte in packet:
+                    outlist.append(format(byte, '02x'))
+                print(f"->{outlist},pass:{sumpass}")
+            if sumpass:
+                if self.debug and cmd==0x81:
+                    ver=data[0]
+                    usb=data[1]
+                    lock="{:0>8b}".format(data[2])
+                    info=f"Ver:{hex(ver)},USB:{usb},Num{lock[-1]} Caps{lock[-2]} Scroll{lock[-3]}"
+                    print(info)
+                return packet
+            else:
+                return False
+        except TimeoutError:
+            return False
+        except IndexError:
             return False
     def write9329(self,cmd,data):
         try:
