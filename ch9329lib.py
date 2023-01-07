@@ -146,6 +146,23 @@ class CH9329HID:
         "up":0x52,#Up
         "right":0x4f,#Right
         "down":0x51,#Down
+        "numlock":0x53,#NumLock
+        "numpad/":0x54,#Numpad /
+        "numpad*":0x55,#Numpad *
+        "numpad-":0x56,#Numpad -
+        "numpad+":0x57,#Numpad +
+        "numpadenter":0x58,#Numpad Enter
+        "numpad1":0x59,#Numpad 1
+        "numpad2":0x5a,#Numpad 2
+        "numpad3":0x5b,#Numpad 3
+        "numpad4":0x5c,#Numpad 4
+        "numpad5":0x5d,#Numpad 5
+        "numpad6":0x5e,#Numpad 6
+        "numpad7":0x5f,#Numpad 7
+        "numpad8":0x60,#Numpad 8
+        "numpad9":0x61,#Numpad 9
+        "numpad0":0x62,#Numpad 0
+        "numpad.":0x63,#Numpad .
 
         })
     __DICT_KEY_CONTROL=dict({
