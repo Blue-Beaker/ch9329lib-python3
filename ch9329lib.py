@@ -270,7 +270,7 @@ class CH9329HID:
             self.__port.send(packet)
         else:
             self.__port.write(packet)
-    def __hexRead(self,size):
+    def __hexRead(self,size:int):
         output=bytearray()
         if self.overTCP:
             packet=self.__port.recv(size)
@@ -327,7 +327,7 @@ class CH9329HID:
             return False
         except IndexError:
             return False
-    def write9329(self,cmd,data):
+    def write9329(self,cmd:int,data):
         try:
             packet=bytearray()
             packet.append(0x57)
@@ -372,7 +372,7 @@ class CH9329HID:
     def closeSerial(self):
         self.__port.close()
 
-    def customWrite(self,cmd,data):
+    def customWrite(self,cmd:int,data:str):
         self.write9329(cmd=int(cmd,16),data=binascii.a2b_hex(data))
     #Keyboard
     def sendKeys(self):
@@ -386,7 +386,7 @@ class CH9329HID:
             packet.append(byte)
         self.write9329(cmd=0x02,data=packet)
         return self.write9329(0x01,bytearray())
-    def pressNormal(self,hidcode,press=0):
+    def pressNormal(self,hidcode:int,press=0):
         if press==1:
             if not hidcode in self.__pressedKeysNormal:
                 if len(self.__pressedKeysNormal)<=6:
@@ -407,11 +407,11 @@ class CH9329HID:
             except:
                 pass
             return True
-    def pressControl(self,index,press=0):
+    def pressControl(self,index:int,press=0):
         self.__pressedKeysCont[index]=1-self.__pressedKeysCont[index] if press==-1 else bool(press)
         self.sendKeys()
         return True
-    def pressMedia(self,keyByte,keyBit,press=0):
+    def pressMedia(self,keyByte:int,keyBit:int,press=0):
         self.__pressedKeysMedia[keyByte][keyBit]= 1-self.__pressedKeysMedia[keyByte][keyBit] if press==-1 else press
         packet=bytearray()
         packet.append(0x02)
@@ -421,7 +421,7 @@ class CH9329HID:
         self.write9329(cmd=0x03,data=packet)
         self.write9329(0x01,bytearray())
         return True
-    def pressByName(self,name,press=0):
+    def pressByName(self,name:str,press=0):
         if name in self.__DICT_KEY_NORMAL:
             return self.pressNormal(self.__DICT_KEY_NORMAL[name],press)
         elif name in self.__DICT_KEY_CONTROL:
@@ -430,7 +430,7 @@ class CH9329HID:
             return self.pressMedia(self.__DICT_KEY_MEDIA[name][0],self.__DICT_KEY_MEDIA[name][1],press)
         else:
             return False
-    def clickByName(self,name):
+    def clickByName(self,name:str):
         self.pressByName(name,1)
         self.pressByName(name,0)
     def releaseAll(self):
@@ -442,24 +442,24 @@ class CH9329HID:
         self.write9329(cmd=0x03,data=bytearray([0x00,0x00]))
         self.mouseRel(0,0,0)
     #Mouse
-    def setMousePress(self,button=0,press=1): #Button: left=0,right=1,middle=2,back=3,forward=4,more side buttons=5-7; Press: release=0,press=1,toggle=-1
+    def setMousePress(self,button:int=0,press:int=1): #Button: left=0,right=1,middle=2,back=3,forward=4,more side buttons=5-7; Press: release=0,press=1,toggle=-1
         if press==0:
             self.__mousePressByte=self.__mousePressByte&(255-(1<<button))
         elif press==1:
             self.__mousePressByte=self.__mousePressByte|(1<<button)
         elif press==-1:
             self.__mousePressByte=self.__mousePressByte^(1<<button)
-    def mouseAbs(self,x,y,wheel=0):
+    def mouseAbs(self,x:int,y:int,wheel:int=0): # x,y = 0~4095
         packet=bytearray()
         packet.append(0x02)
         packet.append(self.__mousePressByte)
-        packet.append(x%128)
-        packet.append(math.floor(x/128))
-        packet.append(y%128)
-        packet.append(math.floor(y/128))
+        packet.append(x%256)
+        packet.append(math.floor(x/256))
+        packet.append(y%256)
+        packet.append(math.floor(y/256))
         packet.append(wheel)
         return self.write9329(0x04,packet)
-    def mouseRel(self,x,y,wheel=0):
+    def mouseRel(self,x:int,y:int,wheel:int=0):
         packet=bytearray()
         packet.append(0x01)
         packet.append(self.__mousePressByte)
@@ -475,7 +475,7 @@ class CH9329HID:
         packet.append(cy)
         packet.append(wheel)
         return self.write9329(0x05,packet)
-    def mousePressClick(self,button=0,press=1): #Press=0: release, Press=1: press, Press=2: click, Press=-1: toggle, 
+    def mousePressClick(self,button:int=0,press:int=1): #Press=0: release, Press=1: press, Press=2: click, Press=-1: toggle, 
         if press==2:
             self.setMousePress(button,1)
             self.mouseRel(0,0,0)
