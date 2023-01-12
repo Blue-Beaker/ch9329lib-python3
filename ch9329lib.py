@@ -70,22 +70,22 @@ class CH9329CFG:
         return packet
     def __str__(self) -> str:
         output=f"""
-        workmode={self.workMode}
-        serialMode={self.serialMode}
-        serialAddress={self.serialAddress}
+        workmode={format(self.workMode, '02x')}
+        serialMode={format(self.serialMode, '02x')}
+        serialAddress={format(self.serialAddress, '02x')}
         baudrate={self.baudrate}
-        reserved0={self.reserved0}
+        reserved0={packetToHexString(self.reserved0)}
         packetInterval={self.packetInterval}
-        usbvid={self.usbvid}
-        usbpid={self.usbpid}
+        usbvid={format(self.usbvid, '02x')}
+        usbpid={format(self.usbpid, '02x')}
         asciiUploadInterval={self.asciiUploadInterval}
         asciiReleaseInterval={self.asciiReleaseInterval}
         asciiAutoReturn={self.asciiAutoReturn}
-        asciiReturnChar={self.asciiReturnChar}
-        filterStartStopString={self.filterStartStopString}
-        enableCustomUSBString={self.enableCustomUSBString}
+        asciiReturnChar={packetToHexString(self.asciiReturnChar)}
+        filterStartStopString={packetToHexString(self.filterStartStopString)}
+        enableCustomUSBString={format(self.enableCustomUSBString, '08b')}
         asciiFastUpload={self.asciiFastUpload}
-        reserved1={self.reserved1}
+        reserved1={packetToHexString(self.reserved1)}
         """
         return output
 
@@ -631,7 +631,7 @@ def intToBytearray(number:int,length:int,reverse=False):
 def cropPacket(packet:bytearray):
     return packet[5:-1]
 def packetToHexString(packet):
-    showlist=[]
+    showlist=""
     for byte in packet:
-        showlist.append(format(byte, '02x'))
+        showlist=showlist+(format(byte, '02x'))+" "
     return showlist
