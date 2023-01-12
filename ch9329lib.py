@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import time
 import traceback
 import serial
 import serial.tools
@@ -8,7 +7,83 @@ import serial.tools.hexlify_codec
 import math
 import binascii
 import threading
-from socket import *
+from socket import socket,AF_INET,SOCK_STREAM
+
+class CH9329CFG:
+    packet=bytearray(50)
+    workMode=0      #芯片工作模式
+    serialMode=0    #串口通信模式
+    serialAddress=0       #串口通信地址
+    baudrate=9600   #波特率
+    reserved0=bytearray(2)
+    packetInterval=3         #串口通信包间隔
+    usbvid=0x1a86      #USB VID
+    usbpid=0xe129      #USB PID
+    asciiUploadInterval=0   #ASCII键盘上传间隔
+    asciiReleaseInterval=1  #ASCII键盘释放时间
+    asciiAutoReturn=False   #ASCII自动回车
+    asciiReturnChar=bytearray(8)    #ASCII回车符
+    filterStartStopString=bytearray(8)  #过滤开始结束字符
+    enableCustomUSBString=0b00000000
+    asciiFastUpload=False
+    reserved1=bytearray(12)
+    def __init__(self,packet=bytearray(50)):
+        self.workMode=packet[0]
+        self.serialMode=packet[1]
+        self.serialAddress=packet[2]
+        self.baudrate=bytearrayToInt(*packet[3:7])
+        self.reserved0=bytearray(packet[7:9])
+        self.packetInterval=bytearrayToInt(*packet[9:11])
+        self.usbvid=bytearrayToInt(*packet[11:13])
+        self.usbpid=bytearrayToInt(*packet[13:15])
+        self.asciiUploadInterval=bytearrayToInt(*packet[15:17])
+        self.asciiReleaseInterval=bytearrayToInt(*packet[17:19])
+        self.asciiAutoReturn=packet[19]>0
+        self.asciiReturnChar=bytearray(packet[20:28])
+        self.filterStartStopString=bytearray(packet[28:36])
+        self.enableCustomUSBString=packet[36]
+        self.asciiFastUpload=packet[37]>0
+        self.reserved1=bytearray(packet[38:50])
+    def toPacket(self):
+        packet=bytearray([
+        self.workMode,
+        self.serialMode,
+        self.serialAddress,
+        *intToBytearray(self.baudrate,4),
+        *self.reserved0,
+        *intToBytearray(self.packetInterval,2),
+        *intToBytearray(self.usbvid,2),
+        *intToBytearray(self.usbpid,2),
+        *intToBytearray(self.asciiUploadInterval,2),
+        *intToBytearray(self.asciiReleaseInterval,2),
+        self.asciiAutoReturn,
+        *self.asciiReturnChar,
+        *self.filterStartStopString,
+        self.enableCustomUSBString,
+        self.asciiFastUpload,
+        *self.reserved1,
+        ])
+        return packet
+    def __str__(self) -> str:
+        output=f"""
+        workmode={self.workMode}
+        serialMode={self.serialMode}
+        serialAddress={self.serialAddress}
+        baudrate={self.baudrate}
+        reserved0={self.reserved0}
+        packetInterval={self.packetInterval}
+        usbvid={self.usbvid}
+        usbpid={self.usbpid}
+        asciiUploadInterval={self.asciiUploadInterval}
+        asciiReleaseInterval={self.asciiReleaseInterval}
+        asciiAutoReturn={self.asciiAutoReturn}
+        asciiReturnChar={self.asciiReturnChar}
+        filterStartStopString={self.filterStartStopString}
+        enableCustomUSBString={self.enableCustomUSBString}
+        asciiFastUpload={self.asciiFastUpload}
+        reserved1={self.reserved1}
+        """
+        return output
 
 class CH9329HID:
     #Parameters
@@ -241,9 +316,10 @@ class CH9329HID:
         "explorer",
         "media",]
     ]
-
+    __BAUDRATES=[1200,2400,4800,9600,19200,38400,57600,115200]
     #Internal variables
-    __port=None
+    __port:serial.Serial
+    __tcpport:socket
     __pressedKeysCont=[0,0,0,0,0,0,0,0]
     __pressedKeysNormal=bytearray()
     __pressedKeysMedia=[[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
@@ -267,13 +343,13 @@ class CH9329HID:
         for byte in hexdata:
             packet.append(byte)
         if self.overTCP:
-            self.__port.send(packet)
+            self.__tcpport.send(packet)
         else:
             self.__port.write(packet)
     def __hexRead(self,size:int):
         output=bytearray()
         if self.overTCP:
-            packet=self.__port.recv(size)
+            packet=self.__tcpport.recv(size)
         else:
             packet=self.__port.read(size)
         for byte in packet:
@@ -351,28 +427,30 @@ class CH9329HID:
             return self.read9329()
         except Exception as exc:
             traceback.print_exc()
+            return False
     def initPort(self):
         self.__pressedKeysCont=[0,0,0,0,0,0,0,0]
         self.__pressedKeysNormal=bytearray()
         try:
             if self.overTCP:
-                self.__port = socket(AF_INET, SOCK_STREAM)
-                self.__port.settimeout(2)
+                self.__tcpport = socket(AF_INET, SOCK_STREAM)
+                self.__tcpport.settimeout(2)
                 pathsplit=self.path.split(":")
                 if self.debug:
                     print(f"connecting {pathsplit[0]}:{pathsplit[1] if pathsplit.__len__()>1 else 23}")
-                self.__port.connect((pathsplit[0], int(pathsplit[1]) if pathsplit.__len__()>1 else 23))
+                self.__tcpport.connect((pathsplit[0], int(pathsplit[1]) if pathsplit.__len__()>1 else 23))
+                return self.__tcpport
             else:
                 self.__port=serial.Serial(port=self.path,baudrate=self.baud)
                 self.__port.timeout=2
+                return self.__port
             self.write9329(0x01,bytearray())
         except Exception as exc:
             traceback.print_exc()
-        return self.__port
     def closeSerial(self):
         self.__port.close()
 
-    def customWrite(self,cmd:int,data:str):
+    def customWrite(self,cmd:str,data:str):
         self.write9329(cmd=int(cmd,16),data=binascii.a2b_hex(data))
     #Keyboard
     def sendKeys(self):
@@ -450,14 +528,12 @@ class CH9329HID:
         elif press==-1:
             self.__mousePressByte=self.__mousePressByte^(1<<button)
     def mouseAbs(self,x:int,y:int,wheel:int=0): # x,y = 0~4095
-        packet=bytearray()
-        packet.append(0x02)
-        packet.append(self.__mousePressByte)
-        packet.append(x%256)
-        packet.append(math.floor(x/256))
-        packet.append(y%256)
-        packet.append(math.floor(y/256))
-        packet.append(wheel)
+        packet=bytearray([
+        (0x02),
+        (self.__mousePressByte),
+        *intToBytearray(x,2,True),
+        *intToBytearray(y,2,True),
+        (wheel)])
         return self.write9329(0x04,packet)
     def mouseRel(self,x:int,y:int,wheel:int=0):
         packet=bytearray()
@@ -492,6 +568,7 @@ class CH9329HID:
     def getPressedKeysRaw(self):
         return self.__pressedKeysNormal,self.__pressedKeysCont,self.__pressedKeysMedia
     def getPressedKeyNormal(self):
+        pressed:list[str]
         pressed=[]
         for key in self.__pressedKeysNormal:
             if key in self.__DICT_KEY_NORMAL.values():
@@ -500,12 +577,14 @@ class CH9329HID:
                 pressed.append(hex(key))
         return pressed
     def getPressedKeyCont(self):
+        pressed:list[str]
         pressed=[]
         for i in range(self.__pressedKeysCont.__len__()):
             if self.__pressedKeysCont[i]:
                 pressed.append(self.__NAMES_KEY_CONTROL[i])
         return pressed
     def getPressedKeyMedia(self):
+        pressed:list[str]
         pressed=[]
         for i in range(self.__pressedKeysMedia.__len__()):
             for j in range(self.__pressedKeysMedia[i].__len__()):
@@ -518,3 +597,40 @@ class CH9329HID:
         return bin(self.__mousePressByte)
     def getInfo(self):
         return self.write9329(0x01,bytearray())
+    #Custom and Config
+    def customHIDWrite(self,data):
+        return self.write9329(0x06,data)
+    def getConfig(self):
+        array=self.write9329(0x08,[])
+        if array and array[3]==0x88:
+            packet=cropPacket(array)
+            if self.debug:
+                print(packetToHexString(packet))
+            return CH9329CFG(packet)
+    def setConfig(self,cfg:CH9329CFG):
+        return self.write9329(0x09,cfg.toPacket())
+
+def bytearrayToInt(*args:int,reverse=False):
+    num=0
+    args2=args
+    if reverse:
+        args2=args.__reversed__()
+    for byte in args2:
+        num=(num<<8)+byte
+    return num
+def intToBytearray(number:int,length:int,reverse=False):
+    array=bytearray()
+    for i in range(length):
+        if reverse:
+            array.append(number&255)
+        else:
+            array.insert(0,number&255)
+        number=number>>8
+    return array
+def cropPacket(packet:bytearray):
+    return packet[5:-1]
+def packetToHexString(packet):
+    showlist=[]
+    for byte in packet:
+        showlist.append(format(byte, '02x'))
+    return showlist
