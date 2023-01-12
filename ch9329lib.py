@@ -603,8 +603,6 @@ class CH9329HID:
         array=self.write9329(0x08,[])
         if array and array[3]==0x88:
             packet=cropPacket(array)
-            if self.debug:
-                print(packetToHexString(packet))
             return CH9329CFG(packet)
     def setConfig(self,cfg:CH9329CFG):
         return self.write9329(0x09,cfg.toPacket())
