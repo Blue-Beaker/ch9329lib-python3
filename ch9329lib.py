@@ -439,12 +439,13 @@ class CH9329HID:
                 if self.debug:
                     print(f"connecting {pathsplit[0]}:{pathsplit[1] if pathsplit.__len__()>1 else 23}")
                 self.__tcpport.connect((pathsplit[0], int(pathsplit[1]) if pathsplit.__len__()>1 else 23))
+                self.write9329(0x01,bytearray())
                 return self.__tcpport
             else:
                 self.__port=serial.Serial(port=self.path,baudrate=self.baud)
                 self.__port.timeout=2
+                self.write9329(0x01,bytearray())
                 return self.__port
-            self.write9329(0x01,bytearray())
         except Exception as exc:
             traceback.print_exc()
     def closeSerial(self):
