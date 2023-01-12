@@ -4,7 +4,6 @@ import serial
 import serial.tools
 import serial.tools.list_ports
 import serial.tools.hexlify_codec
-import math
 import binascii
 import threading
 from socket import socket,AF_INET,SOCK_STREAM
@@ -24,7 +23,12 @@ class CH9329CFG:
     asciiAutoReturn=False   #ASCII自动回车
     asciiReturnChar=bytearray(8)    #ASCII回车符
     filterStartStopString=bytearray(8)  #过滤开始结束字符
-    enableCustomUSBString=0b00000000
+    enableCustomUSBString=0b00000000    #1 个字节芯片 USB 字符串使能标志,
+# 位 7:为 0 表示禁止;为 1 表示使能自定义字符串描述符;
+# 位 6-3:保留;
+# 位 2:为 0 表示禁止;为 1 表示使能自定义厂商字符串描述符;
+# 位 1:为 0 表示禁止;为 1 表示使能自定义产品字符串描述符;
+# 位 0:为 0 表示禁止;为 1 表示使能自定义序列号字符串描述符;
     asciiFastUpload=False
     reserved1=bytearray(12)
     def __init__(self,packet=bytearray(50)):
@@ -370,25 +374,20 @@ class CH9329HID:
             head=self.__hexRead(5)
             data=self.__hexRead(head[4])
             sumx=self.__hexRead(1)[0]
-            for byte in head:
-                packet.append(byte)
-            for byte in data:
-                packet.append(byte)
+            packet.extend(head)
+            packet.extend(data)
             cmd=packet[3]
             sumy=int()
             for byte in packet:
                 sumy+=byte
-            sumy=sumy%256
+            sumy=sumy&255
             if sumx==sumy:
                 sumpass=True
             else:
                 sumpass=False
             packet.append(sumx)
             if self.debug:
-                outlist=[]
-                for byte in packet:
-                    outlist.append(format(byte, '02x'))
-                print(f"->{outlist},pass:{sumpass}")
+                print(f"<- {packetToHexString(packet)},pass:{sumpass}")
             if sumpass:
                 if self.debug and cmd==0x81:
                     ver=data[0]
@@ -410,20 +409,20 @@ class CH9329HID:
             packet.append(0xab)
             packet.append(self.address)
             packet.append(cmd)
-            packet.append(len(data))
-            for byte in data:
-                packet.append(byte)
+            if data:
+                packet.append(len(data))
+                for byte in data:
+                    packet.append(byte)
+            else:
+                packet.append(0)
             sumy=int()
             for byte in packet:
                 sumy+=byte
-            sumy=sumy%256
+            sumy=sumy&255
             packet.append(sumy)
             self.__hexWrite(packet)
             if self.debug:
-                showlist=[]
-                for byte in packet:
-                    showlist.append(format(byte, '02x'))
-                print(f"<-{showlist}")
+                print(f"-> {packetToHexString(packet)}")
             return self.read9329()
         except Exception as exc:
             traceback.print_exc()
@@ -439,20 +438,17 @@ class CH9329HID:
                 if self.debug:
                     print(f"connecting {pathsplit[0]}:{pathsplit[1] if pathsplit.__len__()>1 else 23}")
                 self.__tcpport.connect((pathsplit[0], int(pathsplit[1]) if pathsplit.__len__()>1 else 23))
-                self.write9329(0x01,bytearray())
-                return self.__tcpport
+                return self.__tcpport if self.write9329(0x01,bytearray()) else False
             else:
                 self.__port=serial.Serial(port=self.path,baudrate=self.baud)
                 self.__port.timeout=2
-                self.write9329(0x01,bytearray())
-                return self.__port
+                return self.__port if self.write9329(0x01,bytearray()) else False
         except Exception as exc:
             traceback.print_exc()
+            return False
     def closeSerial(self):
         self.__port.close()
 
-    def customWrite(self,cmd:str,data:str):
-        self.write9329(cmd=int(cmd,16),data=binascii.a2b_hex(data))
     #Keyboard
     def sendKeys(self):
         packet=bytearray()
@@ -599,6 +595,8 @@ class CH9329HID:
     def getInfo(self):
         return self.write9329(0x01,bytearray())
     #Custom and Config
+    def customWrite(self,cmd:str,data:str):
+        self.write9329(cmd=int(cmd,16),data=binascii.a2b_hex(data))
     def customHIDWrite(self,data):
         return self.write9329(0x06,data)
     def getConfig(self):
@@ -610,6 +608,8 @@ class CH9329HID:
             return CH9329CFG(packet)
     def setConfig(self,cfg:CH9329CFG):
         return self.write9329(0x09,cfg.toPacket())
+    def reset(self):
+        return self.write9329(0x0f,None)
 
 def bytearrayToInt(*args:int,reverse=False):
     num=0
