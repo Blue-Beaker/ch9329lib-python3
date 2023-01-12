@@ -608,6 +608,12 @@ class CH9329HID:
             return CH9329CFG(packet)
     def setConfig(self,cfg:CH9329CFG):
         return self.write9329(0x09,cfg.toPacket())
+    def setUSBString(self,type:int,string:str): #Type: Vendor=0,Product=1,Serial=2
+        if len(string)>23:
+            return False
+        packet=bytearray([type,len(string)])
+        packet.extend(bytes(string,"ascii"))
+        return self.write9329(0x0b,packet)
     def reset(self):
         return self.write9329(0x0f,None)
 
