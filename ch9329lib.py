@@ -524,6 +524,9 @@ class CH9329HID:
             self.__mousePressByte=self.__mousePressByte|(1<<button)
         elif press==-1:
             self.__mousePressByte=self.__mousePressByte^(1<<button)
+    def setMouseButtons(self,buttons:int):
+        self.__mousePressByte=buttons&255
+
     def mouseAbs(self,x:int,y:int,wheel:int=0): # x,y = 0~4095
         packet=bytearray([
         (0x02),
