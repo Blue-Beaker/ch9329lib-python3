@@ -560,6 +560,9 @@ class CH9329HID:
         else:
             self.setMousePress(button,press)
             self.mouseRel(0,0,0)
+    def mousePressButtons(self,buttons:int):
+        self.setMouseButtons(buttons)
+        return self.mouseRel(0,0,0)
     def mouseReleaseAll(self,immediate=True):
         self.__mousePressByte=0
         if immediate:
