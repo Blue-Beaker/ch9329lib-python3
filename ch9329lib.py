@@ -329,30 +329,26 @@ class CH9329HID:
     __pressedKeysMedia=[[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
     __mousePressByte=0
     def __init__(self,overTCP=False,path="/dev/ttyUSB0",address=0x00,baud=9600,debug=False):
-        self.overTCP=overTCP
+        self.__overTCP=overTCP
         self.path=path
         self.baud=baud
         self.address=address
         self.debug=debug
         self.initPort()
         self.__threadedKeepAlive()
-
-    def __bitArrayToInt(self,array):
-        num=0
-        for i in array:
-            num=(num<<1)+i
-        return num
+    def isOverTCP(self):
+        return self.__overTCP
     def __hexWrite(self,hexdata):
         packet=bytearray()
         for byte in hexdata:
             packet.append(byte)
-        if self.overTCP:
+        if self.__overTCP:
             self.__tcpport.send(packet)
         else:
             self.__port.write(packet)
     def __hexRead(self,size:int):
         output=bytearray()
-        if self.overTCP:
+        if self.__overTCP:
             packet=self.__tcpport.recv(size)
         else:
             packet=self.__port.read(size)
@@ -360,7 +356,7 @@ class CH9329HID:
             output.append(byte)
         return output
     def __tcpKeepAlive(self):
-        if self.overTCP:
+        if self.__overTCP:
             self.write9329(0x01,bytearray())
             self.__threadedKeepAlive
     def __threadedKeepAlive(self):
@@ -431,7 +427,7 @@ class CH9329HID:
         self.__pressedKeysCont=[0,0,0,0,0,0,0,0]
         self.__pressedKeysNormal=bytearray()
         try:
-            if self.overTCP:
+            if self.__overTCP:
                 self.__tcpport = socket(AF_INET, SOCK_STREAM)
                 self.__tcpport.settimeout(2)
                 pathsplit=self.path.split(":")
@@ -447,12 +443,17 @@ class CH9329HID:
             traceback.print_exc()
             return False
     def closeSerial(self):
-        self.__port.close()
+        try:
+            self.__port.close()
+        except:
+            pass
+        
+
 
     #Keyboard
     def sendKeys(self):
         packet=bytearray()
-        packet.append(self.__bitArrayToInt(self.__pressedKeysCont))
+        packet.append(bitArrayToInt(self.__pressedKeysCont))
         packet.append(0x00)
         data2=bytearray(self.__pressedKeysNormal)
         while len(data2)<6:
@@ -490,9 +491,9 @@ class CH9329HID:
         self.__pressedKeysMedia[keyByte][keyBit]= 1-self.__pressedKeysMedia[keyByte][keyBit] if press==-1 else press
         packet=bytearray()
         packet.append(0x02)
-        packet.append(self.__bitArrayToInt(self.__pressedKeysMedia[0]))
-        packet.append(self.__bitArrayToInt(self.__pressedKeysMedia[1]))
-        packet.append(self.__bitArrayToInt(self.__pressedKeysMedia[2]))
+        packet.append(bitArrayToInt(self.__pressedKeysMedia[0]))
+        packet.append(bitArrayToInt(self.__pressedKeysMedia[1]))
+        packet.append(bitArrayToInt(self.__pressedKeysMedia[2]))
         self.write9329(cmd=0x03,data=packet)
         self.write9329(0x01,bytearray())
         return True
@@ -621,6 +622,12 @@ class CH9329HID:
     def reset(self):
         return self.write9329(0x0f,None)
 
+# Common utils
+def bitArrayToInt(array:list[int]):
+    num=0
+    for i in array:
+        num=(num<<1)+i
+    return num
 def bytearrayToInt(*args:int,reverse=False):
     num=0
     args2=args
