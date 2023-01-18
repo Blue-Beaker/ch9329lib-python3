@@ -529,14 +529,16 @@ class CH9329HID:
         self.__mousePressByte=buttons&255
 
     def mouseAbs(self,x:int,y:int,wheel:int=0): # x,y = 0~4095
+        wheel=max(min(wheel,127),-128)
         packet=bytearray([
         (0x02),
         (self.__mousePressByte),
         *intToBytearray(x,2,True),
         *intToBytearray(y,2,True),
-        (wheel)])
+        (wheel if wheel>0 else wheel+256)])
         return self.write9329(0x04,packet)
     def mouseRel(self,x:int,y:int,wheel:int=0):
+        wheel=max(min(wheel,127),-128)
         packet=bytearray()
         packet.append(0x01)
         packet.append(self.__mousePressByte)
@@ -550,7 +552,7 @@ class CH9329HID:
             cy=min(y,127)
         packet.append(cx)
         packet.append(cy)
-        packet.append(wheel)
+        packet.append(wheel if wheel>=0 else wheel+256)
         return self.write9329(0x05,packet)
     def mousePressClick(self,button:int=0,press:int=1): #Press=0: release, Press=1: press, Press=2: click, Press=-1: toggle, 
         if press==2:
